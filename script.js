@@ -9,6 +9,7 @@
 (() => {
   'use strict';
 
+  window.misogiMotion = true; // index.html の安全装置に「動き始めた」と知らせる
   const root = document.documentElement;
   const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   let reduceMotion = motionQuery.matches;
@@ -181,13 +182,20 @@
   const track = { top: 0, height: 1 };
   const measureDots = () => {
     const y = window.scrollY;
-    const tr = tlTrack.getBoundingClientRect();
-    track.top = tr.top + y;
-    track.height = Math.max(tr.height, 1);
     tlItems.forEach((item, i) => {
       const dot = $('.timeline-time span', item).getBoundingClientRect();
       dotOffsets[i] = dot.top + y + dot.height / 2;
     });
+    // 線は「最初の点の中心」から「最後の点の中心」まで。幅ごとに組み方が変わっても必ず点と点を結ぶ
+    const wrapTop = tlWrap.getBoundingClientRect().top + y;
+    if (dotOffsets.length > 1) {
+      tlTrack.style.top = `${dotOffsets[0] - wrapTop}px`;
+      tlTrack.style.bottom = 'auto';
+      tlTrack.style.height = `${dotOffsets[dotOffsets.length - 1] - dotOffsets[0]}px`;
+    }
+    const tr = tlTrack.getBoundingClientRect();
+    track.top = tr.top + y;
+    track.height = Math.max(tr.height, 1);
   };
   addScene(tlWrap, ({ y }) => {
     const line = y + vh * 0.62; // 画面の6割の高さを「いま読んでいる位置」とみなす
@@ -218,13 +226,13 @@
       e.preventDefault();
       anim?.cancel();
       const opening = !details.open;
+      // 枠（details）ごと高さを動かす＝中身の余白で出だしが跳ねない
+      const start = details.offsetHeight;
       if (opening) details.open = true;
-      const full = body.scrollHeight;
-      anim = body.animate(
-        [{ height: `${opening ? 0 : full}px`, opacity: opening ? 0 : 1 },
-         { height: `${opening ? full : 0}px`, opacity: opening ? 1 : 0 }],
-        { duration: opening ? 520 : 380, easing: 'cubic-bezier(.16,1,.3,1)' }
-      );
+      const end = opening ? details.offsetHeight : start - body.offsetHeight;
+      const timing = { duration: opening ? 560 : 420, easing: 'cubic-bezier(.16,1,.3,1)' };
+      body.animate([{ opacity: opening ? 0 : 1 }, { opacity: opening ? 1 : 0 }], timing);
+      anim = details.animate([{ height: `${start}px` }, { height: `${end}px` }], timing);
       anim.onfinish = () => {
         if (!opening) details.open = false;
         anim = null;
@@ -315,7 +323,11 @@
     rail.addEventListener('pointerup', endDrag);
     rail.addEventListener('pointercancel', endDrag);
 
-    window.addEventListener('resize', measureSlides, { passive: true });
+    // 画面の幅が変わっても、見ていた写真を中央に保つ
+    window.addEventListener('resize', () => {
+      measureSlides();
+      rail.scrollLeft = centers[current] - rail.clientWidth / 2;
+    }, { passive: true });
     window.addEventListener('load', measureSlides, { once: true });
     measureSlides();
     // 最初は1枚目を中央に
@@ -341,6 +353,9 @@
       e.preventDefault();
       target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
       history.replaceState(null, '', id);
+      // 読み上げ・キーボードの利用者も同じ場所へ移す（本文へ移動のリンクが効くように）
+      if (!target.matches('a,button,input,select,textarea,[tabindex]')) target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
     });
   });
 

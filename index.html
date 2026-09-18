@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Zen+Antique&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <!-- JSが動く環境でだけ「出る前の状態」を使う（JSが止まっても本文は全部見える） -->
-  <script>document.documentElement.classList.add('js')</script>
+  <!-- JSが動く環境でだけ「出る前の状態」を使う。script.js が4秒以内に動かなければ元に戻し、本文を全部見せる -->
+  <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.misogiMotion)document.documentElement.classList.remove('js')},4000)</script>
   <script src="script.js" defer></script>
 </head>
 <body>
