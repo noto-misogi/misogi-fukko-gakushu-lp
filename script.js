@@ -21,7 +21,17 @@ const setMenu=(open)=>{
 menuButton.addEventListener('click',()=>setMenu(!mobileMenu.classList.contains('open')));
 mobileMenu.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>setMenu(false)));
 document.addEventListener('keydown',event=>{if(event.key==='Escape')setMenu(false)});
-window.addEventListener('scroll',()=>header.classList.toggle('scrolled',window.scrollY>16),{passive:true});
+// ヘッダーは読み進める間は隠し、上へ戻るときだけ出す（一本杉通り商店街ウェブの型）
+let lastScrollY=window.scrollY;
+window.addEventListener('scroll',()=>{
+  const y=window.scrollY;
+  header.classList.toggle('scrolled',y>16);
+  const goingDown=y>lastScrollY;
+  if(Math.abs(y-lastScrollY)>4){
+    header.classList.toggle('header-hidden',goingDown&&y>window.innerHeight*.6&&!mobileMenu.classList.contains('open'));
+    lastScrollY=y;
+  }
+},{passive:true});
 
 // ファーストビューを離れるときの控えめな奥行き表現
 const hero=document.querySelector('.hero');
